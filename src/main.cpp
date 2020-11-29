@@ -32,6 +32,22 @@ DynamicJsonDocument fetch(String url)
   return doc;
 }
 
+bool parseDateTime(String str, RTC_Date *date, RTC_Time *time) {
+  int16_t year;
+  int8_t mon,day,hour,min,sec,millis;
+  int result = nscanf(str.c_str(), "%d-%d-%dT%d:%d:%d.%d", &year, &mon, &day, &hour, &min, &sec, &millis);
+  if(result > 0) {
+    date->year = year;
+    date->mon = mon;
+    date->day = day;
+    time->hour = hour;
+    time->min = min;
+    time->sec = sec;
+    return result;
+  }
+  else return result;
+}
+
 void setup()
 {
   M5.begin();
@@ -45,12 +61,19 @@ void setup()
       Serial.println("Connecting to WiFi..");
   }
 
-  DynamicJsonDocument doc = fetch(AMBIENT_HOST + String("channels/") + AMBIENT_CHANNEL_ID + String("/data?readKey=") + AMBIENT_READ_KEY + String("&start=2020-11-27+00:00:00&end=2020-11-29+00:00:00"));
+  String url = AMBIENT_HOST + String("channels/") + AMBIENT_CHANNEL_ID + String("/data?readKey=") + AMBIENT_READ_KEY + String("&start=2020-11-27+00:00:00&end=2020-11-29+00:00:00");
+  DynamicJsonDocument doc = fetch(url);
 
   canvas.createCanvas(540, 960);
   canvas.setTextSize(3);
-  canvas.drawString(doc[0]["created"].as<String>(), 45, 350);
+
+  RTC_Date date;
+  RTC_Time time;
+  parseDateTime(doc[0]["created"].as<String>(),&date,&time);
+  canvas.drawString(String(date.year)+String(date.mon)+String(date.day)+String(time.hour)+String(time.min)+String(time.sec), 45, 350);
+
   canvas.pushCanvas(0, 0, UPDATE_MODE_DU4);
+  M5.shutdown();
 }
 
 void loop()
