@@ -2,6 +2,12 @@
 #include <ArduinoJson.h>
 #include <WiFi.h>
 #include <HTTPClient.h>
+
+#define LGFX_M5PAPER
+#include <efontEnableJa.h>
+#include <efontFontData.h>
+#include <LovyanGFX.hpp>
+
 #include "nscanf.h"
 #include "config.h"
 
@@ -10,7 +16,8 @@
 
 const String AMBIENT_HOST = "http://ambidata.io/api/v2/";
 
-M5EPD_Canvas canvas(&M5.EPD);
+static LGFX gfx;
+static LGFX_Sprite sprite(&gfx);
 
 DynamicJsonDocument fetch(String url)
 {
@@ -105,9 +112,11 @@ void generateValueOfDays(JsonArray doc, DateValuePair * out, uint8_t outSize) {
 void setup()
 {
   M5.begin();
-  M5.EPD.SetRotation(90);
-  M5.EPD.Clear(true);
   M5.RTC.begin();
+  gfx.init();
+  gfx.setRotation(3);
+  gfx.setEpdMode(epd_mode_t::epd_quality);
+  gfx.setFont(&fonts::lgfxJapanGothic_36);
   WiFi.begin(WIFI_SSID,WIFI_PASS);
 
   while (WiFi.status() != WL_CONNECTED) {
@@ -115,19 +124,24 @@ void setup()
       Serial.println("Connecting to WiFi..");
   }
 
+  // Ambientから情報を取得
   String url = AMBIENT_HOST + String("channels/") + AMBIENT_CHANNEL_ID + String("/data?readKey=") + AMBIENT_READ_KEY + String("&n=420");
   DynamicJsonDocument doc = fetch(url);
 
-  canvas.createCanvas(540, 960);
-  canvas.setTextSize(3);
-
+  // データの変換
   DateValuePair data[DATA_COUNT];
   generateValueOfDays(doc.as<JsonArray>(),data,DATA_COUNT);
-  for(DateValuePair i : data) {
-    Serial.println(dateToString(i.date)+String(" : ")+String(i.value));
-  }
 
-  canvas.pushCanvas(0, 0, UPDATE_MODE_DU4);
+  // 描画開始
+  gfx.setTextColor(TFT_BLACK);
+  for(DateValuePair i : data) {
+    gfx.println(dateToString(i.date)+String(" : ")+String(i.value));
+  }
+  gfx.fillCircle ( 720, 80, 20, TFT_BLACK);
+  gfx.drawString("こんにちは！",720,160);
+  delay(3000);
+
+  // 電源OFF
   M5.shutdown();
 }
 
