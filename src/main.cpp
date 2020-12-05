@@ -33,8 +33,8 @@ DynamicJsonDocument fetch(String url)
 }
 
 bool parseDateTime(String str, RTC_Date *date, RTC_Time *time) {
-  int16_t year;
-  int8_t mon,day,hour,min,sec,millis;
+  // 年を正しく解釈するため、全ての%dをlongとして解釈するようにnscanfを改変している
+  long year,mon,day,hour,min,sec,millis;
   int result = nscanf(str.c_str(), "%d-%d-%dT%d:%d:%d.%d", &year, &mon, &day, &hour, &min, &sec, &millis);
   if(result > 0) {
     date->year = year;

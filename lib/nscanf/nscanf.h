@@ -1,4 +1,5 @@
-// nscanf by h-nari https://github.com/h-nari/nscanf
+// nscanf made by h-nari https://github.com/h-nari/nscanf
+// modified: all '%d' to be processed as long
 
 #ifdef __cplusplus
 extern "C" {
