@@ -1,7 +1,7 @@
 # M5Paper Ambient Display
 
-一日ごとの電力消費量をグラフで表示します。
-[M5StickC Wi-SUN HAT](https://github.com/rin-ofumi/m5stickc_wisun_hat) との併用を前提にしています。
+一日ごとの電力消費量をグラフで表示します。  
+norifumiさんによる[M5StickC Wi-SUN HAT](https://github.com/rin-ofumi/m5stickc_wisun_hat) との併用を前提にしています。
 
 ## セットアップ
 
