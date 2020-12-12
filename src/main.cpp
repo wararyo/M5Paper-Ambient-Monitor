@@ -82,7 +82,7 @@ void generateValueOfDays(JsonArray doc, DateValuePair * out, uint8_t outSize) {
   uint8_t dataCursor = 0;
   
   size_t size = doc.size();
-  gfx.println(String(size));
+  // gfx.println(String(size));
   for(int i = 0; i < size; i++) {
     JsonVariant v = doc[i];
     RTC_Date date;
@@ -170,10 +170,25 @@ void setup()
 
   // 描画開始
   gfx.setTextColor(TFT_BLACK);
+  gfx.setCursor(32,80);
+  gfx.println("一日の消費電力");
+  gfx.println("");
+  gfx.println("");
   for(DateValuePair i : data) {
+    gfx.setCursor(32,gfx.getCursorY());
     gfx.println(dateToString(i.date)+String(" : ")+String(i.value));
   }
-  drawGraph(data,DATA_COUNT,300,46,598,466);
+  drawGraph(data,DATA_COUNT,304,46,616,466);
+
+  // 更新日時を表示
+  RTC_Date RTCdate;
+  RTC_Time RTCtime;
+  M5.RTC.getTime(&RTCtime);
+  M5.RTC.getDate(&RTCdate); // typo of "Date"
+  gfx.setTextColor(TFT_LIGHTGREY);
+  gfx.setTextDatum(textdatum_t::bottom_left);
+  gfx.setFont(&fonts::lgfxJapanGothic_24);
+  gfx.drawString(dateTimeToString(RTCdate,RTCtime) + String(" ") + String(getBatVoltage()) + String("V") ,0,540);
   delay(3000);
 
   // 電源OFF
