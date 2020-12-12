@@ -11,13 +11,12 @@
 #include "nscanf.h"
 #include "config.h"
 
-// 何日ぶんのデータを計算し保持するか
+// 何日分のデータを算出し保持するか
 #define DATA_COUNT 7
 
 const String AMBIENT_HOST = "http://ambidata.io/api/v2/";
 
 static LGFX gfx;
-static LGFX_Sprite sprite(&gfx);
 
 DynamicJsonDocument fetch(String url)
 {
@@ -64,7 +63,8 @@ String dateTimeToString(RTC_Date date, RTC_Time time) {
 }
 
 String dateToString(RTC_Date date) {
-  return String(date.year)+String("-")+String(date.mon)+String("-")+String(date.day);
+  // return String(date.year)+String("-")+String(date.mon)+String("-")+String(date.day);
+  return String(date.mon)+String("/")+String(date.day);
 }
 
 typedef struct DateValuePair
@@ -81,7 +81,8 @@ typedef struct DateValuePair
 // 実装した後に思ったけどもっと効率の良い方法ありますね
 void generateValueOfDays(JsonArray doc, DateValuePair * out, uint8_t outSize) {
   uint8_t dataCursor = 0;
-
+  
+  gfx.println(String(doc.size()));
   for(int i = 0; i < doc.size(); i++) {
     JsonVariant v = doc[i];
     RTC_Date date;
@@ -109,6 +110,45 @@ void generateValueOfDays(JsonArray doc, DateValuePair * out, uint8_t outSize) {
   return;
 }
 
+// 関数にすることでリターン時にdocが破棄される
+void fetchData(DateValuePair *out) {
+  // Ambientから情報を取得
+  String url = AMBIENT_HOST + String("channels/") + AMBIENT_CHANNEL_ID + String("/data?readKey=") + AMBIENT_READ_KEY + String("&n=420");
+  DynamicJsonDocument doc = fetch(url);
+  // データの変換
+  generateValueOfDays(doc.as<JsonArray>(),out,DATA_COUNT);
+}
+
+void drawGraph(DateValuePair *data, uint8_t dataSize, int32_t x, int32_t y, int32_t width, int32_t height) {
+  const int32_t labelWidth = 36; //ラベル領域の幅
+  // 軸を描画
+  gfx.setColor(TFT_BLACK);
+  gfx.drawFastHLine(x+labelWidth,y+height-labelWidth,width-labelWidth);//X軸
+  gfx.drawFastVLine(x+labelWidth,y,height-labelWidth);//Y軸
+  gfx.setTextDatum(textdatum_t::middle_right);
+  gfx.setFont(&fonts::lgfxJapanGothic_24);
+
+  // Y軸のグリッドとラベル
+  int32_t innerHeight = height - labelWidth;
+  for(int i = 0; i < 10; i++) {
+    gfx.drawFastHLine(x+labelWidth,y+(i * innerHeight/10),width-labelWidth,TFT_LIGHTGREY);
+    gfx.setColor(TFT_BLACK);
+    gfx.drawString(String((10-i)),x + labelWidth-8,y+(i * innerHeight/10));
+  }
+
+  // X軸の棒とラベル
+  gfx.setColor(TFT_BLACK);
+  gfx.setTextDatum(textdatum_t::middle_center);
+  int32_t innerWidth = width - labelWidth;
+  int32_t barWidth_d2 = (int32_t) (innerWidth * 0.7f / dataSize / 2); //棒グラフの各棒の幅/2
+  for(int i = 0; i < dataSize; i++) {
+    int32_t xCenter = x+labelWidth + (innerWidth*(i+1)/(dataSize+1));
+    int32_t barHeight = (int32_t)(innerHeight * (data[dataSize-1-i].value * 0.1f));
+    gfx.fillRect(xCenter-barWidth_d2,y+innerHeight-barHeight,barWidth_d2*2,barHeight);
+    gfx.drawString(dateToString(data[dataSize-1-i].date),xCenter,y+innerHeight+24);
+  }
+}
+
 void setup()
 {
   M5.begin();
@@ -124,21 +164,16 @@ void setup()
       Serial.println("Connecting to WiFi..");
   }
 
-  // Ambientから情報を取得
-  String url = AMBIENT_HOST + String("channels/") + AMBIENT_CHANNEL_ID + String("/data?readKey=") + AMBIENT_READ_KEY + String("&n=420");
-  DynamicJsonDocument doc = fetch(url);
-
-  // データの変換
+  // データを取得
   DateValuePair data[DATA_COUNT];
-  generateValueOfDays(doc.as<JsonArray>(),data,DATA_COUNT);
+  fetchData(data);
 
   // 描画開始
   gfx.setTextColor(TFT_BLACK);
   for(DateValuePair i : data) {
     gfx.println(dateToString(i.date)+String(" : ")+String(i.value));
   }
-  gfx.fillCircle ( 720, 80, 20, TFT_BLACK);
-  gfx.drawString("こんにちは！",720,160);
+  drawGraph(data,DATA_COUNT,300,46,598,466);
   delay(3000);
 
   // 電源OFF
