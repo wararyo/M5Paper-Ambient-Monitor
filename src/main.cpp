@@ -78,18 +78,18 @@ typedef struct DateValuePair
 // 日毎に翌日との差分を取得する(翌日がない場合は最新値との差分)
 // 積算消費電力から一日ごとの消費電力を算出するのに使用
 // 新しいデータ->古いデータの順に並んでいるという想定
-// 実装した後に思ったけどもっと効率の良い方法ありますね
 void generateValueOfDays(JsonArray doc, DateValuePair * out, uint8_t outSize) {
   uint8_t dataCursor = 0;
   
-  gfx.println(String(doc.size()));
-  for(int i = 0; i < doc.size(); i++) {
+  size_t size = doc.size();
+  gfx.println(String(size));
+  for(int i = 0; i < size; i++) {
     JsonVariant v = doc[i];
     RTC_Date date;
     RTC_Time time;
     parseDateTime(v["created"].as<String>(),&date,&time);
     // 時刻が0:00だったらデータを遡り翌日の0:00を探す
-    if(time.hour == 0 && time.min == 0 && time.sec == 0) {
+    if(i == size-1 || time.hour == 0 && time.min == 0 && time.sec == 0) {
       Serial.println(v["created"].as<String>() + v["d1"].as<String>());
       for(int ti = i-1;ti >= 0;ti--) {
         if(ti < 0) ti = 0;
@@ -97,8 +97,8 @@ void generateValueOfDays(JsonArray doc, DateValuePair * out, uint8_t outSize) {
         RTC_Date tDate;
         RTC_Time tTime;
         parseDateTime(tv["created"].as<String>(),&tDate,&tTime);
-        if(ti == 0 || (tTime.hour == 0 && tTime.min == 0 && tTime.sec == 0)) {
-          // 翌日の0:00または最新の値に到達したので、dataへ追加する
+        if(ti == 0 || date.mon != tDate.mon || date.day != tDate.day) {
+          // 翌日以降に到達したので、その値を採用する
           out[dataCursor] = DateValuePair(date,tv["d1"].as<float>() - v["d1"].as<float>());
           dataCursor++;
           if(dataCursor == outSize) return;
@@ -113,7 +113,7 @@ void generateValueOfDays(JsonArray doc, DateValuePair * out, uint8_t outSize) {
 // 関数にすることでリターン時にdocが破棄される
 void fetchData(DateValuePair *out) {
   // Ambientから情報を取得
-  String url = AMBIENT_HOST + String("channels/") + AMBIENT_CHANNEL_ID + String("/data?readKey=") + AMBIENT_READ_KEY + String("&n=420");
+  String url = AMBIENT_HOST + String("channels/") + AMBIENT_CHANNEL_ID + String("/data?readKey=") + AMBIENT_READ_KEY + String("&n=480");
   DynamicJsonDocument doc = fetch(url);
   // データの変換
   generateValueOfDays(doc.as<JsonArray>(),out,DATA_COUNT);
