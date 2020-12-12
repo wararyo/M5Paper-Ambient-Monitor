@@ -10,6 +10,7 @@
 
 #include "nscanf.h"
 #include "config.h"
+#include "battery.h"
 
 // 何日分のデータを算出し保持するか
 #define DATA_COUNT 7
@@ -190,11 +191,10 @@ void setup()
   gfx.setFont(&fonts::lgfxJapanGothic_24);
   gfx.drawString(dateTimeToString(RTCdate,RTCtime) + String(" ") + String(getBatVoltage()) + String("V") ,0,540);
   delay(3000);
-
-  // 電源OFF
-  M5.shutdown();
 }
 
-void loop()
-{
+void loop() {
+  // 電源OFF
+  M5.shutdown(10800);
+  delay(3000);
 }
