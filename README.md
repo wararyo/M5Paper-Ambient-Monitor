@@ -1,5 +1,7 @@
 # M5Paper Ambient Display
 
+![eyecatch](eyecatch.jpg)
+
 一日ごとの電力消費量をグラフで表示します。  
 norifumiさんによる[M5StickC Wi-SUN HAT](https://github.com/rin-ofumi/m5stickc_wisun_hat) との併用を前提にしています。
 
