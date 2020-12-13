@@ -10,7 +10,6 @@
 
 #include "nscanf.h"
 #include "config.h"
-#include "battery.h"
 
 // 何日分のデータを算出し保持するか
 #define DATA_COUNT 7
@@ -154,6 +153,7 @@ void setup()
 {
   M5.begin();
   M5.RTC.begin();
+  M5.BatteryADCBegin();
   gfx.init();
   gfx.setRotation(3);
   gfx.setEpdMode(epd_mode_t::epd_quality);
@@ -189,7 +189,7 @@ void setup()
   gfx.setTextColor(TFT_LIGHTGREY);
   gfx.setTextDatum(textdatum_t::bottom_left);
   gfx.setFont(&fonts::lgfxJapanGothic_24);
-  gfx.drawString(dateTimeToString(RTCdate,RTCtime) + String(" ") + String(getBatVoltage()) + String("V") ,0,540);
+  gfx.drawString(dateTimeToString(RTCdate,RTCtime) + String(" ") + String(M5.getBatteryVoltage()) + String("mV") ,0,540);
   delay(3000);
 }
 
