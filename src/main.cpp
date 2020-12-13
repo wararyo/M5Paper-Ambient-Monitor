@@ -190,6 +190,13 @@ void setup()
   gfx.setTextDatum(textdatum_t::bottom_left);
   gfx.setFont(&fonts::lgfxJapanGothic_24);
   gfx.drawString(dateTimeToString(RTCdate,RTCtime) + String(" ") + String(M5.getBatteryVoltage()) + String("mV") ,0,540);
+
+  // kWh
+  gfx.setTextColor(TFT_DARKGREY);
+  gfx.setTextDatum(textdatum_t::top_left);
+  gfx.setFont(&fonts::lgfxJapanGothic_24);
+  gfx.drawString("(kWh)",32,120);
+
   delay(3000);
 }
 
