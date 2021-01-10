@@ -82,7 +82,6 @@ void generateValueOfDays(JsonArray doc, DateValuePair * out, uint8_t outSize) {
   uint8_t dataCursor = 0;
   
   size_t size = doc.size();
-  // gfx.println(String(size));
   for(int i = 0; i < size; i++) {
     JsonVariant v = doc[i];
     RTC_Date date;
@@ -111,12 +110,18 @@ void generateValueOfDays(JsonArray doc, DateValuePair * out, uint8_t outSize) {
 }
 
 // 関数にすることでリターン時にdocが破棄される
-void fetchData(DateValuePair *out) {
+bool fetchData(DateValuePair *out) {
   // Ambientから情報を取得
   String url = AMBIENT_HOST + String("channels/") + AMBIENT_CHANNEL_ID + String("/data?readKey=") + AMBIENT_READ_KEY + String("&n=480");
   DynamicJsonDocument doc = fetch(url);
-  // データの変換
-  generateValueOfDays(doc.as<JsonArray>(),out,DATA_COUNT);
+  if(doc.size() > 0) {
+    // データの変換
+    generateValueOfDays(doc.as<JsonArray>(),out,DATA_COUNT);
+    return true;
+  }
+  else {
+    return false;
+  }
 }
 
 void drawGraph(DateValuePair *data, uint8_t dataSize, int32_t x, int32_t y, int32_t width, int32_t height) {
@@ -154,10 +159,6 @@ void setup()
   M5.begin();
   M5.RTC.begin();
   M5.BatteryADCBegin();
-  gfx.init();
-  gfx.setRotation(3);
-  gfx.setEpdMode(epd_mode_t::epd_quality);
-  gfx.setFont(&fonts::lgfxJapanGothic_36);
   WiFi.begin(WIFI_SSID,WIFI_PASS);
 
   while (WiFi.status() != WL_CONNECTED) {
@@ -167,41 +168,55 @@ void setup()
 
   // データを取得
   DateValuePair data[DATA_COUNT];
-  fetchData(data);
+  if(fetchData(data)) { //データの取得に成功したら
+    gfx.init();
+    gfx.setRotation(3);
+    gfx.setEpdMode(epd_mode_t::epd_quality);
+    gfx.setFont(&fonts::lgfxJapanGothic_36);
 
-  // 描画開始
-  gfx.setTextColor(TFT_BLACK);
-  gfx.setCursor(32,80);
-  gfx.println("一日の消費電力");
-  gfx.println("");
-  gfx.println("");
-  for(DateValuePair i : data) {
-    gfx.setCursor(32,gfx.getCursorY());
-    gfx.println(dateToString(i.date)+String(" : ")+String(i.value));
+    // 描画開始
+    gfx.setTextColor(TFT_BLACK);
+    gfx.setCursor(32,80);
+    gfx.println("一日の消費電力");
+    gfx.println("");
+    gfx.println("");
+    for(DateValuePair i : data) {
+      gfx.setCursor(32,gfx.getCursorY());
+      gfx.println(dateToString(i.date)+String(" : ")+String(i.value));
+    }
+    drawGraph(data,DATA_COUNT,304,46,616,466);
+
+    // 更新日時を表示
+    RTC_Date RTCdate;
+    RTC_Time RTCtime;
+    M5.RTC.getTime(&RTCtime);
+    M5.RTC.getDate(&RTCdate); // typo of "Date"
+    gfx.setTextColor(TFT_LIGHTGREY);
+    gfx.setTextDatum(textdatum_t::bottom_left);
+    gfx.setFont(&fonts::lgfxJapanGothic_24);
+    gfx.drawString(dateTimeToString(RTCdate,RTCtime) + String(" ") + String(M5.getBatteryVoltage()) + String("mV") ,0,540);
+
+    // kWh
+    gfx.setTextColor(TFT_DARKGREY);
+    gfx.setTextDatum(textdatum_t::top_left);
+    gfx.setFont(&fonts::lgfxJapanGothic_24);
+    gfx.drawString("(kWh)",32,120);
+
+    delay(3000);
+    while(true) {
+      // 電源OFF
+      M5.shutdown(10800); //3時間おきに更新
+    }
   }
-  drawGraph(data,DATA_COUNT,304,46,616,466);
+  else {
+    delay(3000);
+    M5.shutdown(3600); //データの取得に失敗したら一時間後にまたトライ
+  }
 
-  // 更新日時を表示
-  RTC_Date RTCdate;
-  RTC_Time RTCtime;
-  M5.RTC.getTime(&RTCtime);
-  M5.RTC.getDate(&RTCdate); // typo of "Date"
-  gfx.setTextColor(TFT_LIGHTGREY);
-  gfx.setTextDatum(textdatum_t::bottom_left);
-  gfx.setFont(&fonts::lgfxJapanGothic_24);
-  gfx.drawString(dateTimeToString(RTCdate,RTCtime) + String(" ") + String(M5.getBatteryVoltage()) + String("mV") ,0,540);
-
-  // kWh
-  gfx.setTextColor(TFT_DARKGREY);
-  gfx.setTextDatum(textdatum_t::top_left);
-  gfx.setFont(&fonts::lgfxJapanGothic_24);
-  gfx.drawString("(kWh)",32,120);
-
-  delay(3000);
 }
 
 void loop() {
-  // 電源OFF
-  M5.shutdown(10800);
-  delay(3000);
+  // 充電時以外はここには到達しないはず
+  delay(10000);
+  M5.shutdown(3600);
 }
