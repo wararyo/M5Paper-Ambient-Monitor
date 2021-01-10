@@ -1,4 +1,4 @@
-# M5Paper Ambient Display
+# M5Paper Ambient Monitor
 
 ![eyecatch](eyecatch.jpg)
 
